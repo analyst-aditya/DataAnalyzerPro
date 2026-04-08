@@ -1,0 +1,126 @@
+"""
+i18n.py - Stub kept for import compatibility.
+All UI is now American English only. t(key) returns the English string directly.
+"""
+import streamlit as st
+
+STRINGS = {
+    "nav_home":         "🏠 Home",
+    "nav_search":       "🔍 Data Search",
+    "nav_cleaning":     "🛠️ Cleaning Studio",
+    "nav_analysis":     "📈 Analysis",
+    "nav_canvas":       "🎨 Canvas Builder",
+    "nav_dashboards":   "💼 My Dashboards",
+    "nav_insights":     "🤖 AI Insights",
+    "nav_about":        "ℹ️ About & Feedback",
+    "nav_admin":        "⚙️ Admin Panel",
+    "nav_logout":       "🔓 Logout",
+    "login_title":      "Login",
+    "signup_title":     "Create Account",
+    "username":         "Username",
+    "password":         "Password",
+    "confirm_password": "Confirm Password",
+    "login_btn":        "Login →",
+    "signup_btn":       "Create Account →",
+    "no_account":       "Don't have an account?",
+    "register_link":    "✨ Register",
+    "back_login":       "← Back to Login",
+    "upload_title":     "📁 File Upload",
+    "upload_hint":      "Drag & drop CSV or Excel files here",
+    "loaded_files":     "📊 Loaded Files",
+    "preview":          "Preview",
+    "set_active":       "✅ Set as Active",
+    "remove":           "🗑️ Remove",
+    "active_dataset":   "🎯 Active Dataset",
+    "demo_data":        "🧪 Try Demo Data",
+    "cleaning_title":   "🛠️ Data Cleaning Studio",
+    "scan_problems":    "🔍 Scan for Problems",
+    "select_all_cols":  "Select All Columns",
+    "reset_original":   "🔄 Reset to Original",
+    "apply":            "Apply",
+    "undo":             "↩️ Undo",
+    "search_title":     "🔍 Data Search",
+    "search_mode":      "Search Mode",
+    "search_query":     "Search:",
+    "search_btn":       "🔍 Search",
+    "results":          "Results",
+    "no_results":       "No results found",
+    "clear_search":     "🔄 Clear Search",
+    "search_in":        "Search in:",
+    "canvas_title":     "🎨 Dashboard Canvas",
+    "add_chart":        "➕ Add Chart",
+    "save_dashboard":   "💾 Save",
+    "load_dashboard":   "📂 Load",
+    "export":           "📤 Export",
+    "clear_canvas":     "🗑️ Clear All",
+    "chart_type":       "Chart Type",
+    "chart_title_lbl":  "Chart Title",
+    "x_axis":           "X-Axis / Category",
+    "y_axis":           "Y-Axis / Value",
+    "color_by":         "Color By",
+    "aggregation":      "Aggregation",
+    "chart_width":      "Width",
+    "chart_height":     "Height",
+    "grid_cols":        "Grid Columns",
+    "global_theme":     "Global Theme",
+    "drag_hint":        "Drag to reorder →",
+    "empty_canvas":     "Canvas is empty — add a chart!",
+    "save_chart":       "✅ Save Chart",
+    "cancel":           "Cancel",
+    "edit":             "Edit",
+    "duplicate":        "Duplicate",
+    "refresh":          "Refresh",
+    "delete":           "Delete",
+    "size_adjust":      "⚙️ Resize",
+    "apply_size":       "✅ Apply Size",
+    "analysis_title":   "📈 Dashboard Analysis",
+    "overview":         "📊 Overview",
+    "distribution":     "📉 Distribution",
+    "correlation":      "🔗 Correlation",
+    "statistics":       "📋 Statistics",
+    "cross_analysis":   "🔄 Cross Analysis",
+    "insights_title":   "🤖 AI Insights & Analysis",
+    "gen_insights":     "🧠 Generate Insights",
+    "recommendations":  "💡 Recommendations",
+    "my_dashboards":    "💼 My Dashboards",
+    "no_dashboards":    "No saved dashboards yet",
+    "load_to_canvas":   "📂 Load to Canvas",
+    "export_html":      "📤 Export HTML",
+    "yes_delete":       "✅ Yes, Delete",
+    "no_cancel":        "❌ Cancel",
+    "admin_title":      "⚙️ Admin Panel",
+    "total_users":      "Total Users",
+    "active_users":     "Active Users",
+    "feedback":         "Feedback",
+    "activity_log":     "Activity Log",
+    "about_title":      "ℹ️ About & Feedback",
+    "submit_feedback":  "📤 Submit Feedback",
+    "rating":           "Rating",
+    "select_dataset":   "Select Dataset:",
+    "select_columns":   "Select Columns:",
+    "rows":             "Rows",
+    "columns":          "Columns",
+    "missing":          "Missing",
+    "download_csv":     "⬇️ Download CSV",
+    "download_excel":   "⬇️ Download Excel",
+    "save":             "Save",
+    "warning_upload":   "⚠️ Please upload data from Home first",
+    "no_data":          "No data available",
+    "set_active_btn":   "✅ Set as Active Dataset",
+}
+
+
+def t(key: str, **kwargs) -> str:
+    """Return the American English string for a key."""
+    text = STRINGS.get(key, key)
+    if kwargs:
+        try:
+            text = text.format(**kwargs)
+        except Exception:
+            pass
+    return text
+
+
+def lang_selector():
+    """No-op — language selection removed. American English only."""
+    pass

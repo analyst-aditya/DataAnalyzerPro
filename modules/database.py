@@ -100,7 +100,8 @@ def init_database():
         cur = conn.cursor()
         cur.execute("SELECT id FROM users WHERE username = 'admin'")
         if not cur.fetchone():
-            hashed = bcrypt.hashpw("Admin@12345".encode(), bcrypt.gensalt(rounds=12)).decode()
+            admin_password = os.getenv("ADMIN_PASSWORD", "ChangeMe@123")
+            hashed = bcrypt.hashpw(admin_password.encode(), bcrypt.gensalt(rounds=12)).decode()
             conn.execute(
                 "INSERT INTO users (username, password, is_admin) VALUES (?, ?, 1)",
                 ("admin", hashed),
@@ -117,3 +118,4 @@ def log_activity(user_id: int, event_type: str, event_data: str = ""):
             )
     except Exception:
         pass
+

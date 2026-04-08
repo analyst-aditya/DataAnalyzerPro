@@ -39,11 +39,11 @@ def show_login():
             st.session_state["mode"] = "signup"
             st.rerun()
 
-        st.markdown("""
-        <div style='text-align:center;margin-top:20px;color:#888;font-size:12px'>
-            Default admin: <code>admin</code> / <code>Admin@12345</code>
-        </div>
-        """, unsafe_allow_html=True)
+        # st.markdown("""
+        # <div style='text-align:center;margin-top:20px;color:#888;font-size:12px'>
+        #     Default admin: <code>admin</code> / <code>Admin@12345</code>
+        # </div>
+        # """, unsafe_allow_html=True)
 
 
 def show_signup():

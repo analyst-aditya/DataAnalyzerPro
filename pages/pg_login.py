@@ -38,14 +38,7 @@ def show_login():
         if st.button("✨ Create an Account", use_container_width=True):
             st.session_state["mode"] = "signup"
             st.rerun()
-
-        # st.markdown("""
-        # <div style='text-align:center;margin-top:20px;color:#888;font-size:12px'>
-        #     Default admin: <code>admin</code> / <code>Admin@12345</code>
-        # </div>
-        # """, unsafe_allow_html=True)
-
-
+            
 def show_signup():
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:

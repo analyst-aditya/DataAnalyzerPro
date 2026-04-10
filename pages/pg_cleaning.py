@@ -1,6 +1,5 @@
 """
 pg_cleaning.py - Data Cleaning Studio
-UPDATED: Added Column Operations to Manual Clean
 """
 import io
 import streamlit as st
@@ -30,15 +29,21 @@ def page_cleaning(user: dict):
     df_original = dfs[selected]
 
     key_clean = f"cleaned_{selected}"
+    key_removed = f"removed_rows_{selected}"
     if key_clean not in st.session_state:
         st.session_state[key_clean] = df_original.copy()
+    if key_removed not in st.session_state:
+        st.session_state[key_removed] = pd.DataFrame()
     df = st.session_state[key_clean]
 
-    c1, c2, c3, c4 = st.columns(4)
+    orig_cols = len(df_original.columns)
+    curr_cols = len(df.columns)
+    c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Original Rows", f"{len(df_original):,}")
     c2.metric("Current Rows",  f"{len(df):,}")
     c3.metric("Rows Removed",  f"{len(df_original) - len(df):,}")
-    c4.metric("Missing Values",f"{int(df.isna().sum().sum()):,}")
+    c4.metric("Columns Removed", f"{orig_cols - curr_cols:,}")
+    c5.metric("Missing Values",f"{int(df.isna().sum().sum()):,}")
 
     undo_key = f"clean_undo_{selected}"
     if undo_key not in st.session_state:
@@ -55,11 +60,18 @@ def page_cleaning(user: dict):
             st.info("No operations selected.")
             return
         push_undo()
+        before_df = st.session_state[key_clean].copy()
         cleaned, summary = clean_data(st.session_state[key_clean].copy(), ops)
+        # Track removed rows (those in before but not in cleaned, by index)
+        removed_idx = before_df.index.difference(cleaned.index)
+        if len(removed_idx) > 0:
+            new_removed = before_df.loc[removed_idx]
+            existing = st.session_state.get(key_removed, pd.DataFrame())
+            st.session_state[key_removed] = pd.concat([existing, new_removed], ignore_index=True)
         st.session_state[key_clean]       = cleaned
         st.session_state["active_df"]     = cleaned
         st.session_state["active_df_name"] = selected
-        st.success(f"✅ Done — {summary['changes']} changes across {len(summary['operations'])} operation(s).")
+        st.success(f"✅ Done — {summary['changes']} row(s)/column(s) changed across {len(summary['operations'])} operation(s).")
         for m in summary["operations"]:
             st.markdown(f"  - {m}")
         st.rerun()
@@ -76,7 +88,7 @@ def page_cleaning(user: dict):
 
     tabs = st.tabs([
         "🔍 Problem Scanner", "⚡ Auto Clean",
-        "✏️ Manual Clean", "📦 Batch Operations", "👁️ Preview & Export"
+        "✏️ Manual Clean", "📦 Batch Operations", "👁️ Preview & Export", "🗑️ Removed Data"
     ])
 
     # ── Problem Scanner ───────────────────────────────────────────────────────
@@ -109,6 +121,14 @@ def page_cleaning(user: dict):
                     for x in p["outliers"]
                 ]), use_container_width=True)
 
+            if p["invalid_emails"]:
+                st.markdown("#### Invalid Email Addresses")
+                for x in p["invalid_emails"]:
+                    st.warning(f"Column '{x['column']}': {x['count']} invalid email(s) found.")
+
+            if p["duplicate_rows"]:
+                st.markdown(f"#### {len(p['duplicate_rows'])} Duplicate Rows Found")
+
     # ── Auto Clean ────────────────────────────────────────────────────────────
     with tabs[1]:
         st.markdown("### ⚡ One-Click Auto Clean")
@@ -134,11 +154,11 @@ def page_cleaning(user: dict):
         st.markdown("### ✏️ Manual Cleaning Operations")
         cat = st.selectbox("Category:", [
             "Handle Missing Values",
-            "Column Operations",  # NEW
             "Row Operations",
             "Text Operations",
             "Numeric Operations",
             "Type Conversion",
+            "Column Operations",
         ])
 
         if cat == "Handle Missing Values":
@@ -163,16 +183,6 @@ def page_cleaning(user: dict):
                 if method == "Fill with custom value":
                     op["value"] = cv
                 apply_ops([op])
-
-        # NEW: Column Operations Logic
-        elif cat == "Column Operations":
-            st.info("💡 Permanently delete selected columns from the current view.")
-            sel = _col_selector("Select Columns to Remove:", all_cols, "col_rem_list")
-            if st.button("🗑️ Remove Selected Columns", type="primary", use_container_width=True):
-                if not sel:
-                    st.error("Please select at least one column.")
-                else:
-                    apply_ops([{"type": "remove_columns", "columns": sel}])
 
         elif cat == "Row Operations":
             rop = st.selectbox("Operation:", [
@@ -219,6 +229,14 @@ def page_cleaning(user: dict):
                 mp = {"Numeric": "convert_numeric", "Datetime": "convert_datetime"}
                 apply_ops([{"type": mp[to], "columns": sel}])
 
+        elif cat == "Column Operations":
+            st.markdown("**Remove unused or unwanted columns from the dataset.**")
+            cols_to_remove = _col_selector("Select Columns to Remove:", all_cols, "col_remove_sel")
+            if cols_to_remove:
+                st.warning(f"⚠️ This will permanently remove {len(cols_to_remove)} column(s): {', '.join(cols_to_remove)}")
+            if st.button("🗑️ Remove Selected Columns", type="primary") and cols_to_remove:
+                apply_ops([{"type": "remove_columns", "columns": cols_to_remove}])
+
         st.markdown("---")
         r1c, r2c = st.columns(2)
         if r1c.button("🔄 Reset to Original Data", type="secondary", use_container_width=True):
@@ -241,8 +259,8 @@ def page_cleaning(user: dict):
         bc1, bc2 = st.columns([2, 2])
         with bc1:
             bop = st.selectbox("Add operation:", [
-                "remove_columns", # Added to batch
                 "remove_empty_rows", "remove_duplicates",
+                "remove_columns",
                 "trim_spaces", "proper_case", "lowercase", "uppercase",
                 "fill_missing_mean", "fill_missing_median", "fill_missing_zero",
                 "fill_missing_forward", "fill_missing_backward",
@@ -281,6 +299,12 @@ def page_cleaning(user: dict):
             disp = all_cols
         st.dataframe(df[disp].head(100), use_container_width=True)
 
+        try:
+            st.markdown("#### Descriptive Statistics")
+            st.dataframe(df[disp].describe(include="all").round(3), use_container_width=True)
+        except Exception:
+            pass
+
         st.markdown("#### 📥 Export Cleaned Data")
         e1, e2, e3 = st.columns(3)
 
@@ -301,3 +325,28 @@ def page_cleaning(user: dict):
             st.session_state["active_df"]      = df
             st.session_state["active_df_name"] = selected
             st.success("✅ This cleaned dataset is now the active dataset.")
+
+    # ── Removed Data ──────────────────────────────────────────────────────────
+    with tabs[5]:
+        st.markdown("### 🗑️ Removed / Cleaned Out Data")
+        removed_df = st.session_state.get(key_removed, pd.DataFrame())
+        col_diff = [c for c in df_original.columns if c not in df.columns]
+        if col_diff:
+            st.markdown(f"#### 🗂️ Removed Columns ({len(col_diff)})")
+            st.info(f"The following columns were removed: **{', '.join(col_diff)}**")
+            st.markdown("**Sample data from removed columns (original dataset):**")
+            st.dataframe(df_original[col_diff].head(50), use_container_width=True)
+        if removed_df is not None and len(removed_df) > 0:
+            st.markdown(f"#### 📋 Removed Rows ({len(removed_df):,} total)")
+            st.caption("These are rows that were removed during cleaning operations (duplicates, empties, outliers, etc.)")
+            st.dataframe(removed_df.head(200), use_container_width=True)
+            buf = io.StringIO()
+            removed_df.to_csv(buf, index=False)
+            st.download_button("⬇️ Download Removed Rows (CSV)", buf.getvalue(),
+                               file_name=f"removed_rows_{selected}.csv",
+                               mime="text/csv")
+            if st.button("🧹 Clear Removed Data Log", key="clear_removed"):
+                st.session_state[key_removed] = pd.DataFrame()
+                st.rerun()
+        elif not col_diff:
+            st.info("No data has been removed yet. Perform cleaning operations to see removed rows/columns here.")

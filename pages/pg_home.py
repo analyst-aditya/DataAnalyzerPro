@@ -30,12 +30,6 @@ def page_home(user: dict):
                         df = pd.read_csv(file, encoding="utf-8", on_bad_lines="skip")
                     else:
                         df = pd.read_excel(file)
-                    
-                    # Sample large datasets for performance
-                    if len(df) > 100000:
-                        st.info(f"📊 Large dataset ({len(df):,} rows) sampled to 100,000 rows for better performance.")
-                        df = df.sample(n=100000, random_state=42)
-                    
                     st.session_state["uploaded_dfs"][file.name] = df
                     newly_added.append(file.name)
                     log_activity(user["id"], "upload", f"File: {file.name}, Rows: {len(df)}")

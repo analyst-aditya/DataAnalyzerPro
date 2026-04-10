@@ -1,7 +1,6 @@
 """
 app.py - Data Analyzer Pro 2.0 — Main Entry Point
 Author: Aditya Kumar
-
 Run: streamlit run app.py
 """
 import os
@@ -23,7 +22,7 @@ from modules.auth import current_user, logout_user, refresh_session
 from modules.theme_utils import apply_theme, theme_toggle_widget
 from modules.i18n import t
 
-from pages.pg_login import show_login, show_signup
+from pages.pg_login import show_login, show_signup, show_forgot_password, show_admin_login
 from pages.pg_home import page_home
 from pages.pg_cleaning import page_cleaning
 from pages.pg_analysis import page_analysis
@@ -51,20 +50,25 @@ def main():
 
     user = current_user()
 
+    # ── Pre-auth pages ─────────────────────────────────────────────────────────
     if not user:
-        if st.session_state["mode"] == "signup":
+        mode = st.session_state.get("mode", "login")
+        if mode == "signup":
             show_signup()
+        elif mode == "forgot":
+            show_forgot_password()
+        elif mode == "admin_login":
+            show_admin_login()
         else:
             show_login()
         return
 
     refresh_session()
 
-    # ── Sidebar ───────────────────────────────────────────────────────────────
+    # ── Sidebar navigation ─────────────────────────────────────────────────────
     with st.sidebar:
-        # User badge
-        is_dark = st.session_state.get("app_theme") == "dark"
-        badge_bg = "#334155" if is_dark else "#f1f5f9"
+        is_dark   = st.session_state.get("app_theme") == "dark"
+        badge_bg  = "#334155" if is_dark else "#f1f5f9"
         admin_badge = " 👑" if user.get("is_admin") else ""
         st.markdown(f"""
         <div style='background:{badge_bg};border-radius:10px;
@@ -74,11 +78,10 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        # Active dataset badge
         adn = st.session_state.get("active_df_name")
         if adn:
-            adf = st.session_state.get("active_df")
-            rows = f"{len(adf):,}" if adf is not None else "?"
+            adf   = st.session_state.get("active_df")
+            rows  = f"{len(adf):,}" if adf is not None else "?"
             short = adn[:22] + "…" if len(adn) > 22 else adn
             st.markdown(f"""
             <div style='background:#1d4ed8;color:#fff;border-radius:8px;
@@ -89,7 +92,6 @@ def main():
 
         st.markdown("---")
 
-        # Navigation pages
         pages = [
             (t("nav_home"),       "Home"),
             (t("nav_cleaning"),   "Cleaning"),
@@ -111,11 +113,9 @@ def main():
                 st.rerun()
 
         st.markdown("---")
-
-        # Theme toggle
         theme_toggle_widget()
-
         st.markdown("---")
+
         if st.button(t("nav_logout"), use_container_width=True, key="logout_main"):
             logout_user()
             st.session_state["mode"] = "login"
@@ -127,18 +127,18 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-    # ── Route ─────────────────────────────────────────────────────────────────
+    # ── Page routing ───────────────────────────────────────────────────────────
     page = st.session_state.get("page", "Home")
     routes = {
-        "Home":         lambda: page_home(user),
-        "Search":       lambda: page_search(user),
-        "Cleaning":     lambda: page_cleaning(user),
-        "Analysis":     lambda: page_analysis(user),
-        "Canvas":       lambda: page_canvas(user),
-        "My Dashboards":lambda: page_my_dashboards(user),
-        "AI Insights":  lambda: page_insights(user),
-        "About":        lambda: page_about(user),
-        "Admin":        lambda: page_admin(user),
+        "Home":          lambda: page_home(user),
+        "Search":        lambda: page_search(user),
+        "Cleaning":      lambda: page_cleaning(user),
+        "Analysis":      lambda: page_analysis(user),
+        "Canvas":        lambda: page_canvas(user),
+        "My Dashboards": lambda: page_my_dashboards(user),
+        "AI Insights":   lambda: page_insights(user),
+        "About":         lambda: page_about(user),
+        "Admin":         lambda: page_admin(user),
     }
     fn = routes.get(page)
     if fn:

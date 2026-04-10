@@ -6,7 +6,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
-from modules.chart_utils import make_chart, CHART_TYPES, CHART_THEMES
+from modules.chart_utils import make_chart, CHART_TYPES, CHART_THEMES, CHART_FIELD_REQUIREMENTS
 from modules.dashboard_utils import (
     save_dashboard, load_dashboard, get_user_dashboards, export_dashboard_html
 )
@@ -119,28 +119,101 @@ def _chart_editor(df: pd.DataFrame, edit_idx):
                                value=cfg.get("title", type_map[chart_type].split(" ", 1)[1]),
                                key="ce_title")
 
-        xcol = st.selectbox("X-Axis / Category", [""] + cols,
-                             index=(cols.index(cfg.get("xcol","")) + 1) if cfg.get("xcol") in cols else 0,
-                             key="ce_xcol")
-        ycol = st.selectbox("Y-Axis / Value", [""] + num_cols,
-                             index=(num_cols.index(cfg.get("ycol","")) + 1) if cfg.get("ycol") in num_cols else 0,
-                             key="ce_ycol")
-        color_col = st.selectbox("Color By (optional)", [""] + cols,
-                                  index=(cols.index(cfg.get("color_col","")) + 1) if cfg.get("color_col") in cols else 0,
-                                  key="ce_color")
-        size_col = None
-        if chart_type in ("scatter","bubble"):
-            size_col = st.selectbox("Size By (optional)", [""] + num_cols,
-                                    index=(num_cols.index(cfg.get("size_col","")) + 1) if cfg.get("size_col") in num_cols else 0,
-                                    key="ce_size")
+        # ── Type-specific field configuration ────────────────────────────────
+        req = CHART_FIELD_REQUIREMENTS.get(chart_type, {})
+        required_fields = req.get("required", [])
+        optional_fields = req.get("optional", [])
+        field_labels    = req.get("labels", [])
 
-        agg_func = st.selectbox("Aggregation", ["sum","mean","count","min","max","median"],
-                                 index=["sum","mean","count","min","max","median"].index(cfg.get("agg_func","sum")),
-                                 key="ce_agg")
+        xcol = ""
+        ycol = ""
+        color_col = None
+        size_col  = None
+
+        # Charts that need NO axis inputs
+        if chart_type == "heatmap":
+            st.info("Heatmap uses all numeric columns automatically.")
+
+        elif chart_type == "table":
+            st.info("Table displays the first 100 rows of the dataset.")
+
+        elif chart_type in ("kpi", "card"):
+            # KPI / Card: Value field (required) + Trend/Secondary field (optional)
+            lbl_y = field_labels[0] if len(field_labels) > 0 else "Value Column"
+            lbl_x = field_labels[1] if len(field_labels) > 1 else "Trend / Secondary (optional)"
+            ycol = st.selectbox(lbl_y, [""] + num_cols,
+                                index=(num_cols.index(cfg.get("ycol","")) + 1) if cfg.get("ycol") in num_cols else 0,
+                                key="ce_ycol")
+            xcol = st.selectbox(lbl_x, [""] + num_cols,
+                                index=(num_cols.index(cfg.get("xcol","")) + 1) if cfg.get("xcol") in num_cols else 0,
+                                key="ce_xcol")
+
+        elif chart_type in ("pie", "donut"):
+            lbl_x = field_labels[0] if len(field_labels) > 0 else "Legend / Category"
+            lbl_y = field_labels[1] if len(field_labels) > 1 else "Values"
+            xcol = st.selectbox(lbl_x, [""] + cols,
+                                index=(cols.index(cfg.get("xcol","")) + 1) if cfg.get("xcol") in cols else 0,
+                                key="ce_xcol")
+            ycol = st.selectbox(lbl_y, [""] + num_cols,
+                                index=(num_cols.index(cfg.get("ycol","")) + 1) if cfg.get("ycol") in num_cols else 0,
+                                key="ce_ycol")
+
+        elif chart_type in ("box", "violin"):
+            lbl_y = field_labels[0] if len(field_labels) > 0 else "Y-Axis / Value"
+            lbl_x = field_labels[1] if len(field_labels) > 1 else "X-Axis / Group By (optional)"
+            ycol = st.selectbox(lbl_y, [""] + num_cols,
+                                index=(num_cols.index(cfg.get("ycol","")) + 1) if cfg.get("ycol") in num_cols else 0,
+                                key="ce_ycol")
+            xcol = st.selectbox(lbl_x, [""] + cols,
+                                index=(cols.index(cfg.get("xcol","")) + 1) if cfg.get("xcol") in cols else 0,
+                                key="ce_xcol")
+            if "color_col" in optional_fields:
+                color_col = st.selectbox("Color By (optional)", [""] + cols,
+                                         index=(cols.index(cfg.get("color_col","")) + 1) if cfg.get("color_col") in cols else 0,
+                                         key="ce_color")
+
+        elif chart_type == "histogram":
+            lbl_x = field_labels[0] if len(field_labels) > 0 else "Column"
+            xcol = st.selectbox(lbl_x, [""] + cols,
+                                index=(cols.index(cfg.get("xcol","")) + 1) if cfg.get("xcol") in cols else 0,
+                                key="ce_xcol")
+
+        else:
+            # bar, line, area, scatter, bubble, funnel
+            lbl_x = field_labels[0] if len(field_labels) > 0 else "X-Axis / Category"
+            lbl_y = field_labels[1] if len(field_labels) > 1 else "Y-Axis / Value"
+            xcol = st.selectbox(lbl_x, [""] + cols,
+                                index=(cols.index(cfg.get("xcol","")) + 1) if cfg.get("xcol") in cols else 0,
+                                key="ce_xcol")
+            ycol = st.selectbox(lbl_y, [""] + num_cols,
+                                index=(num_cols.index(cfg.get("ycol","")) + 1) if cfg.get("ycol") in num_cols else 0,
+                                key="ce_ycol")
+            if "color_col" in optional_fields:
+                color_col = st.selectbox("Color By (optional)", [""] + cols,
+                                         index=(cols.index(cfg.get("color_col","")) + 1) if cfg.get("color_col") in cols else 0,
+                                         key="ce_color")
+            if "size_col" in optional_fields:
+                size_col = st.selectbox("Size By (optional)", [""] + num_cols,
+                                        index=(num_cols.index(cfg.get("size_col","")) + 1) if cfg.get("size_col") in num_cols else 0,
+                                        key="ce_size")
+
+        # Aggregation — not relevant for scatter/bubble/table/heatmap/kpi/card
+        if chart_type not in ("scatter", "bubble", "table", "heatmap", "kpi", "card", "histogram"):
+            agg_func = st.selectbox("Aggregation", ["sum","mean","count","min","max","median"],
+                                     index=["sum","mean","count","min","max","median"].index(cfg.get("agg_func","sum")),
+                                     key="ce_agg")
+        else:
+            agg_func = cfg.get("agg_func", "sum")
+
         chart_theme = st.selectbox("Chart Theme", list(CHART_THEMES.keys()),
                                     index=list(CHART_THEMES.keys()).index(
                                         cfg.get("theme", st.session_state["canvas_theme"])),
                                     key="ce_theme")
+
+        # Data labels toggle — not for table/heatmap
+        show_labels = False
+        if chart_type not in ("table",):
+            show_labels = st.checkbox("📌 Show Data Labels", value=cfg.get("show_labels", False), key="ce_labels")
 
         st.markdown("#### 📐 Chart Size")
         span_opts  = {"Full Width": 1, "Half Width": 2, "One-Third": 3}
@@ -152,6 +225,9 @@ def _chart_editor(df: pd.DataFrame, edit_idx):
 
         h_opts   = {280: "Small (280px)", 380: "Medium (380px)", 480: "Large (480px)", 580: "X-Large (580px)"}
         curr_h   = cfg.get("height", 380)
+        # card/kpi use smaller default height
+        if chart_type in ("card", "kpi") and curr_h == 380:
+            curr_h = 280
         h_label  = st.selectbox("Height", list(h_opts.values()),
                                  index=list(h_opts.keys()).index(curr_h) if curr_h in h_opts else 1,
                                  key="ce_height")
@@ -166,6 +242,7 @@ def _chart_editor(df: pd.DataFrame, edit_idx):
                 "color_col": color_col or None, "size_col": size_col or None,
                 "agg_func": agg_func, "theme": chart_theme,
                 "span": span, "height": height, "top_n": top_n,
+                "show_labels": show_labels,
             }
             new_cfg["fig"] = make_chart(df, new_cfg)
             _push_undo()
@@ -358,63 +435,77 @@ def page_canvas(user: dict):
 
 def _render_card(container, idx, viz, df, user):
     with container:
-        st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+        is_dark  = st.session_state.get("app_theme") == "dark"
+        card_bg  = "#1e293b" if is_dark else "#ffffff"
+        card_bdr = "#334155" if is_dark else "#e2e8f0"
+        title_col= "#f1f5f9" if is_dark else "#1e293b"
+        sub_col  = "#94a3b8" if is_dark else "#64748b"
+        ctype    = viz.get("type", "chart").upper()
 
-        h1, h2, h3, h4, h5, h6, h7 = st.columns([4, 1, 1, 1, 1, 1, 1])
-        h1.markdown(f"<div class='chart-title'>{viz.get('title','Chart')}</div>", unsafe_allow_html=True)
+        # ── Card header ──────────────────────────────────────────────────────
+        st.markdown(
+            f"<div style='background:{card_bg};border:1px solid {card_bdr};border-radius:12px 12px 0 0;"
+            f"padding:10px 14px 8px 14px;'>"
+            f"<span style='font-weight:600;font-size:14px;color:{title_col}'>{viz.get('title','Chart')}</span>"
+            f"<span style='font-size:10px;color:{sub_col};margin-left:8px;font-weight:400'>{ctype}</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
-        if h2.button("▲", key=f"up_{idx}", help="Move up"):
+        # ── Action buttons ───────────────────────────────────────────────────
+        b1, b2, b3, b4, b5, b6 = st.columns(6)
+        if b1.button("▲", key=f"up_{idx}", help="Move up", use_container_width=True):
             if idx > 0:
                 _push_undo()
                 ch = st.session_state["canvas_charts"]
                 ch[idx], ch[idx-1] = ch[idx-1], ch[idx]
                 st.rerun()
-        if h3.button("▼", key=f"dn_{idx}", help="Move down"):
+        if b2.button("▼", key=f"dn_{idx}", help="Move down", use_container_width=True):
             ch = st.session_state["canvas_charts"]
             if idx < len(ch) - 1:
                 _push_undo()
                 ch[idx], ch[idx+1] = ch[idx+1], ch[idx]
                 st.rerun()
-        if h4.button("✏️", key=f"ed_{idx}", help="Edit chart"):
+        if b3.button("✏️", key=f"ed_{idx}", help="Edit", use_container_width=True):
             st.session_state["canvas_editing"] = idx
             st.rerun()
-        if h5.button("📋", key=f"cp_{idx}", help="Duplicate"):
+        if b4.button("📋", key=f"cp_{idx}", help="Duplicate", use_container_width=True):
             _push_undo()
             nv = copy.deepcopy(viz)
             nv["title"] = viz.get("title","Chart") + " (copy)"
             st.session_state["canvas_charts"].insert(idx+1, nv)
             st.rerun()
-        if h6.button("🔄", key=f"rf_{idx}", help="Refresh chart"):
+        if b5.button("🔄", key=f"rf_{idx}", help="Refresh", use_container_width=True):
             if df is not None:
                 viz["fig"] = make_chart(df, viz)
             st.rerun()
-        if h7.button("🗑️", key=f"dl_{idx}", help="Delete chart"):
+        if b6.button("🗑️", key=f"dl_{idx}", help="Delete", use_container_width=True):
             _push_undo()
             st.session_state["canvas_charts"].pop(idx)
             st.rerun()
 
+        # ── Resize expander ──────────────────────────────────────────────────
         with st.expander("⚙️ Resize", expanded=False):
             rc1, rc2 = st.columns(2)
-            span_opts  = {"Full": 1, "Half": 2, "1/3": 3}
-            curr_span  = viz.get("span", 1)
+            span_opts = {"Full": 1, "Half": 2, "1/3": 3}
+            curr_span = viz.get("span", 1)
             new_span_label = rc1.selectbox("Width", list(span_opts.keys()),
                 index=list(span_opts.values()).index(curr_span) if curr_span in span_opts.values() else 0,
                 key=f"rspan_{idx}")
             new_span = span_opts[new_span_label]
-
             h_opts = {280: "Small", 380: "Medium", 480: "Large", 580: "X-Large"}
             curr_h = viz.get("height", 380)
             new_h  = rc2.select_slider("Height", options=list(h_opts.keys()),
                 value=curr_h if curr_h in h_opts else 380,
                 format_func=lambda x: h_opts[x], key=f"rheight_{idx}")
-
-            if (new_span != curr_span or new_h != curr_h):
+            if new_span != curr_span or new_h != curr_h:
                 if st.button("✅ Apply Size", key=f"rsz_{idx}", type="primary"):
                     _push_undo()
                     st.session_state["canvas_charts"][idx]["span"]   = new_span
                     st.session_state["canvas_charts"][idx]["height"] = new_h
                     st.rerun()
 
+        # ── Chart figure ─────────────────────────────────────────────────────
         fig = viz.get("fig")
         if fig is None and viz.get("fig_json"):
             try:
@@ -429,27 +520,56 @@ def _render_card(container, idx, viz, df, user):
 
         height = viz.get("height", 380)
         if fig is not None:
+            # Re-apply dark/light background to already-built figure
+            t_data = CHART_THEMES.get(viz.get("theme","Default"), CHART_THEMES["Default"])
+            if is_dark:
+                bg = "#0f172a"
+                fig.update_layout(
+                    paper_bgcolor=bg, plot_bgcolor=bg,
+                    font=dict(color="#EAEAEA"),
+                    height=height,
+                )
+                # Don't override axes for kpi/card (they hide axes intentionally)
+                if viz.get("type") not in ("kpi", "card", "table"):
+                    fig.update_xaxes(color="#EAEAEA", gridcolor="#333355")
+                    fig.update_yaxes(color="#EAEAEA", gridcolor="#333355")
+            else:
+                fig.update_layout(height=height)
+
             st.plotly_chart(fig, use_container_width=True,
                             key=f"fig_{idx}_{viz.get('type','x')}",
                             config={"displayModeBar": True, "displaylogo": False,
                                     "modeBarButtonsToRemove": ["pan2d","lasso2d","select2d"]})
         else:
-            st.markdown(f"""
-            <div style='text-align:center;padding:40px;opacity:.6;
-                 border:1px dashed #475569;border-radius:8px;height:{height}px;
-                 display:flex;align-items:center;justify-content:center;flex-direction:column'>
-                ⚠️ Chart could not be rendered.<br>
-                <small>Click Edit and set the required columns.</small>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                f"<div style='text-align:center;padding:40px;border:2px dashed {card_bdr};"
+                f"border-radius:8px;min-height:{height//2}px;display:flex;align-items:center;"
+                f"justify-content:center;flex-direction:column;background:{card_bg};color:{sub_col};'>"
+                f"⚠️ Chart could not be rendered.<br>"
+                f"<small style='margin-top:8px'>Click ✏️ and set the required columns.</small>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
 
-        if viz.get("ycol") and viz["ycol"] in df.columns and pd.api.types.is_numeric_dtype(df[viz["ycol"]]):
+        # ── Summary stats ────────────────────────────────────────────────────
+        if (viz.get("ycol") and df is not None and viz["ycol"] in df.columns
+                and pd.api.types.is_numeric_dtype(df[viz["ycol"]])):
             col_data = df[viz["ycol"]].dropna()
             if len(col_data) > 0:
-                s1, s2, s3, s4 = st.columns(4)
-                s1.caption(f"Sum: **{col_data.sum():,.0f}**")
-                s2.caption(f"Avg: **{col_data.mean():,.2f}**")
-                s3.caption(f"Max: **{col_data.max():,.0f}**")
-                s4.caption(f"Min: **{col_data.min():,.0f}**")
+                st.markdown(
+                    f"<div style='display:flex;gap:20px;padding:6px 4px 2px 4px;"
+                    f"font-size:12px;color:{sub_col};flex-wrap:wrap;"
+                    f"border-top:1px solid {card_bdr};margin-top:4px'>"
+                    f"<span>∑ <b style='color:{title_col}'>{col_data.sum():,.0f}</b></span>"
+                    f"<span>x̄ <b style='color:{title_col}'>{col_data.mean():,.2f}</b></span>"
+                    f"<span>↑ <b style='color:{title_col}'>{col_data.max():,.0f}</b></span>"
+                    f"<span>↓ <b style='color:{title_col}'>{col_data.min():,.0f}</b></span>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
 
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(
+            f"<div style='background:{card_bg};border:1px solid {card_bdr};"
+            f"border-radius:0 0 12px 12px;height:8px;margin-top:0'></div>",
+            unsafe_allow_html=True,
+        )

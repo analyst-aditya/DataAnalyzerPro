@@ -1,6 +1,6 @@
 """
 data_utils.py - Data quality detection and cleaning operations
-UPDATED: Added remove_columns operation
+FIX: deprecated fillna(method=) replaced with ffill()/bfill()
 """
 import copy
 import numpy as np
@@ -123,15 +123,7 @@ def clean_data(df: pd.DataFrame, operations: List[Dict]) -> Tuple[pd.DataFrame, 
         cols = op.get("columns", [])
 
         try:
-            # NEW: Remove specific columns
-            if op_type == "remove_columns" and cols:
-                existing_to_drop = [c for c in cols if c in df.columns]
-                if existing_to_drop:
-                    df = df.drop(columns=existing_to_drop)
-                    summary["operations"].append(f"Dropped columns: {', '.join(existing_to_drop)}")
-                    summary["changes"] += 1
-
-            elif op_type == "remove_empty_rows":
+            if op_type == "remove_empty_rows":
                 before = len(df)
                 df = df.dropna(how="all")
                 removed = before - len(df)
@@ -160,6 +152,13 @@ def clean_data(df: pd.DataFrame, operations: List[Dict]) -> Tuple[pd.DataFrame, 
                 removed = before - len(df)
                 summary["operations"].append(f"Removed {removed} rows with missing in {cols}")
                 summary["changes"] += removed
+
+            elif op_type == "remove_columns" and cols:
+                valid_cols = [c for c in cols if c in df.columns]
+                if valid_cols:
+                    df = df.drop(columns=valid_cols)
+                    summary["operations"].append(f"Removed {len(valid_cols)} column(s): {valid_cols}")
+                    summary["changes"] += len(valid_cols)
 
             elif op_type == "remove_negative" and cols:
                 for col in cols:
@@ -208,7 +207,7 @@ def clean_data(df: pd.DataFrame, operations: List[Dict]) -> Tuple[pd.DataFrame, 
                     if col in df.columns:
                         n = int(df[col].isna().sum())
                         if n:
-                            df[col] = df[col].ffill()
+                            df[col] = df[col].ffill()   # FIX: deprecated method
                             summary["operations"].append(f"Forward-filled {n} missing in '{col}'")
 
             elif op_type == "fill_missing_backward" and cols:
@@ -216,7 +215,7 @@ def clean_data(df: pd.DataFrame, operations: List[Dict]) -> Tuple[pd.DataFrame, 
                     if col in df.columns:
                         n = int(df[col].isna().sum())
                         if n:
-                            df[col] = df[col].bfill()
+                            df[col] = df[col].bfill()   # FIX: deprecated method
                             summary["operations"].append(f"Backward-filled {n} missing in '{col}'")
 
             elif op_type == "fill_missing_custom" and cols:

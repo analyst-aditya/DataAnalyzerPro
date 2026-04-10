@@ -1,6 +1,5 @@
 """
 database.py - Secure database management with context managers
-FIX: Proper connection handling, migrations, is_admin column
 """
 import sqlite3
 import os
@@ -80,13 +79,24 @@ def init_database():
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id)
             );
+
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                username   TEXT NOT NULL,
+                token      TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                used       INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
         """)
 
-        # Safe migrations — columns that may not exist in older DBs
+        # Safe migrations
         safe_migrations = [
             "ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0",
             "ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1",
             "ALTER TABLE users ADD COLUMN last_login TEXT",
+            "ALTER TABLE users ADD COLUMN security_question TEXT DEFAULT ''",
+            "ALTER TABLE users ADD COLUMN security_answer TEXT DEFAULT ''",
             "ALTER TABLE feedback ADD COLUMN rating INTEGER DEFAULT 5",
             "ALTER TABLE saved_dashboards ADD COLUMN thumbnail TEXT DEFAULT ''",
         ]
@@ -100,8 +110,7 @@ def init_database():
         cur = conn.cursor()
         cur.execute("SELECT id FROM users WHERE username = 'admin'")
         if not cur.fetchone():
-            admin_password = os.getenv("ADMIN_PASSWORD", "ChangeMe@123")
-            hashed = bcrypt.hashpw(admin_password.encode(), bcrypt.gensalt(rounds=12)).decode()
+            hashed = bcrypt.hashpw("Admin@12345".encode(), bcrypt.gensalt(rounds=12)).decode()
             conn.execute(
                 "INSERT INTO users (username, password, is_admin) VALUES (?, ?, 1)",
                 ("admin", hashed),
@@ -118,4 +127,4 @@ def log_activity(user_id: int, event_type: str, event_data: str = ""):
             )
     except Exception:
         pass
-
+    

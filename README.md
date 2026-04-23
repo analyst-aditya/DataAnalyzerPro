@@ -1,4 +1,4 @@
-# 📊 Data Analyzer Pro 2.0
+# 📊 Data Analysis App 2.0
 
 **Enterprise-Grade Data Analysis Platform** — Built with Python & Streamlit
 
@@ -187,4 +187,4 @@ maxUploadSize = 200    # MB me (change kar sakte hain)
 
 ---
 
-**Data Analyzer Pro** © 2026 — Developed by Aditya Kumar
+**Data Analysis App** © 2026 — Developed by Aditya Kumar

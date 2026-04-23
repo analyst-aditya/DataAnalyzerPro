@@ -12,7 +12,7 @@ def page_about(user: dict):
 
     with col1:
         st.markdown("""
-## 📊 Data Analyzer Pro v3
+## 📊 Data Analysis App v3
 **Enterprise-Grade Data Analysis Platform** — built with Python, Streamlit & Plotly.
 
 ---
@@ -111,7 +111,7 @@ def page_about(user: dict):
         st.markdown(
             f"<div style='background:{card_bg};border:1px solid {card_bdr};border-radius:10px;"
             f"padding:12px;color:{txt_col};font-size:12px;line-height:1.7'>"
-            f"<b>Data Analyzer Pro v3</b><br>"
+            f"<b>Data Analysis App v3</b><br>"
             f"Streamlit · Plotly · pandas<br>"
             f"15 chart types · 6 cleaning categories<br>"
             f"Dark &amp; light themes · bcrypt auth"
@@ -226,7 +226,7 @@ def page_about(user: dict):
     st.markdown("---")
     st.markdown(
         "<div style='text-align:center;color:#888;font-size:12px;padding:20px'>"
-        "<strong>Data Analyzer Pro v2</strong> © 2026 — Developed by <strong>Aditya Kumar</strong><br>"
+        "<strong>Data Analysis App v2</strong> © 2026 — Developed by <strong>Aditya Kumar</strong><br>"
         "Built with Python · Streamlit · Plotly · pandas · SQLite"
         "</div>",
         unsafe_allow_html=True,

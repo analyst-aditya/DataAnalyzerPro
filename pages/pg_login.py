@@ -42,7 +42,7 @@ def show_login():
 
     st.markdown("""
     <div style='text-align:center;padding:30px 0 8px'>
-        <h1 style='font-size:2.4rem;font-weight:700;'>📊 Data Analyzer Pro</h1>
+        <h1 style='font-size:2.4rem;font-weight:700;'>📊 Data Analysis App</h1>
         <p style='color:#888;font-size:1rem;'>Enterprise Data Analysis Platform</p>
     </div>
     """, unsafe_allow_html=True)

@@ -1,5 +1,5 @@
 """
-app.py - Data Analyzer Pro 2.0 — Main Entry Point
+app.py - Data Analysis App 2.0 — Main Entry Point
 Author: Aditya Kumar
 Run: streamlit run app.py
 """
@@ -10,11 +10,11 @@ import streamlit as st
 warnings.filterwarnings("ignore")
 
 st.set_page_config(
-    page_title="Data Analyzer Pro",
+    page_title="Data Analysis App",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
-    menu_items={"About": "Data Analyzer Pro 2.0 — by Aditya Kumar"},
+    menu_items={"About": "Data Analysis App 2.0 — by Aditya Kumar"},
 )
 
 from modules.database import init_database
@@ -123,7 +123,7 @@ def main():
 
         st.markdown("""
         <div style='font-size:10px;opacity:.5;text-align:center;margin-top:12px'>
-            Data Analyzer Pro v2.0<br>by Aditya Kumar
+            Data Analysis App v2.0<br>by Aditya Kumar
         </div>
         """, unsafe_allow_html=True)
 
